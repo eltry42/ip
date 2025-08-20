@@ -1,8 +1,8 @@
 import java.util.Scanner;
 
 class Task {
-    private String description;
-    private boolean isDone;
+    protected String description;
+    protected boolean isDone;
 
     public Task(String description) {
         this.description = description;
@@ -21,13 +21,50 @@ class Task {
         return (isDone ? "X" : " ");
     }
 
-    public String getDescription() {
-        return description;
+    @Override
+    public String toString() {
+        return "[" + getStatusIcon() + "] " + description;
+    }
+}
+
+class Todo extends Task {
+    public Todo(String description) {
+        super(description);
     }
 
     @Override
     public String toString() {
-        return "[" + getStatusIcon() + "] " + description;
+        return "[T]" + super.toString();
+    }
+}
+
+class Deadline extends Task {
+    protected String by;
+
+    public Deadline(String description, String by) {
+        super(description);
+        this.by = by;
+    }
+
+    @Override
+    public String toString() {
+        return "[D]" + super.toString() + " (by: " + by + ")";
+    }
+}
+
+class Event extends Task {
+    protected String from;
+    protected String to;
+
+    public Event(String description, String from, String to) {
+        super(description);
+        this.from = from;
+        this.to = to;
+    }
+
+    @Override
+    public String toString() {
+        return "[E]" + super.toString() + " (from: " + from + " to: " + to + ")";
     }
 }
 
@@ -51,6 +88,7 @@ public class Eltry {
         System.out.println("Hello from\n" + logo);
         System.out.println(" Hello! I'm " + chatbotName + ", your friendly task bot.");
         System.out.println(" Type tasks to add them, 'list' to view tasks, 'mark <num>' to mark done, 'unmark <num>' to undo, and 'bye' to exit!");
+        System.out.println(" Task types: todo <desc>, deadline <desc> /by <date>, event <desc> /from <start> /to <end>");
         System.out.println("____________________________________________________________");
 
         while (true) {
@@ -94,13 +132,39 @@ public class Eltry {
                 } catch (Exception e) {
                     System.out.println(" Usage: unmark <task_number>");
                 }
-            } else {
-                if (taskCount < tasks.length) {
-                    tasks[taskCount++] = new Task(input);
-                    System.out.println(" added: " + input);
-                } else {
-                    System.out.println(" Cannot add more tasks. Storage full!");
+            } else if (input.toLowerCase().startsWith("todo ")) {
+                String desc = input.substring(5).trim();
+                tasks[taskCount++] = new Todo(desc);
+                System.out.println(" Got it. I've added this task:\n   " + tasks[taskCount-1]);
+                System.out.println(" Now you have " + taskCount + " tasks in the list.");
+            } else if (input.toLowerCase().startsWith("deadline ")) {
+                try {
+                    String[] parts = input.substring(9).split("/by");
+                    String desc = parts[0].trim();
+                    String by = parts[1].trim();
+                    tasks[taskCount++] = new Deadline(desc, by);
+                    System.out.println(" Got it. I've added this task:\n   " + tasks[taskCount-1]);
+                    System.out.println(" Now you have " + taskCount + " tasks in the list.");
+                } catch (Exception e) {
+                    System.out.println(" Usage: deadline <desc> /by <date>");
                 }
+            } else if (input.toLowerCase().startsWith("event ")) {
+                try {
+                    String[] parts = input.substring(6).split("/from");
+                    String desc = parts[0].trim();
+                    String[] times = parts[1].split("/to");
+                    String from = times[0].trim();
+                    String to = times[1].trim();
+                    tasks[taskCount++] = new Event(desc, from, to);
+                    System.out.println(" Got it. I've added this task:\n   " + tasks[taskCount-1]);
+                    System.out.println(" Now you have " + taskCount + " tasks in the list.");
+                } catch (Exception e) {
+                    System.out.println(" Usage: event <desc> /from <start> /to <end>");
+                }
+            } else {
+                tasks[taskCount++] = new Todo(input);
+                System.out.println(" Got it. I've added this task as a Todo:\n   " + tasks[taskCount-1]);
+                System.out.println(" Now you have " + taskCount + " tasks in the list.");
             }
 
             System.out.println("____________________________________________________________");
