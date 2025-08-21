@@ -1,5 +1,11 @@
 import java.util.Scanner;
 
+class EltryException extends Exception {
+    public EltryException(String message) {
+        super(message);
+    }
+}
+
 class Task {
     protected String description;
     protected boolean isDone;
@@ -95,81 +101,77 @@ public class Eltry {
             String input = scanner.nextLine().trim();
             System.out.println("____________________________________________________________");
 
-            if (input.equalsIgnoreCase("bye")) {
-                System.out.println(" Bye. Hope to see you again soon! 😊");
-                System.out.println("____________________________________________________________");
-                break;
-            } else if (input.equalsIgnoreCase("list")) {
-                if (taskCount == 0) {
-                    System.out.println(" No tasks in your list yet.");
-                } else {
+            try {
+                if (input.equalsIgnoreCase("bye")) {
+                    System.out.println(" Bye. Hope to see you again soon! 😊");
+                    System.out.println("____________________________________________________________");
+                    break;
+                } else if (input.equalsIgnoreCase("list")) {
+                    if (taskCount == 0) {
+                        throw new EltryException("Your task list is empty.");
+                    }
                     System.out.println(" Here are the tasks in your list:");
                     for (int i = 0; i < taskCount; i++) {
                         System.out.println(" " + (i + 1) + "." + tasks[i]);
                     }
-                }
-            } else if (input.toLowerCase().startsWith("mark ")) {
-                try {
-                    int index = Integer.parseInt(input.split(" ")[1]) - 1;
-                    if (index >= 0 && index < taskCount) {
-                        tasks[index].markAsDone();
-                        System.out.println(" Nice! I've marked this task as done:\n   " + tasks[index]);
-                    } else {
-                        System.out.println(" Invalid task number!");
+                } else if (input.toLowerCase().startsWith("mark ")) {
+                    int index = parseIndex(input, taskCount);
+                    tasks[index].markAsDone();
+                    System.out.println(" Nice! I've marked this task as done:\n   " + tasks[index]);
+                } else if (input.toLowerCase().startsWith("unmark ")) {
+                    int index = parseIndex(input, taskCount);
+                    tasks[index].markAsNotDone();
+                    System.out.println(" OK, I've marked this task as not done yet:\n   " + tasks[index]);
+                } else if (input.toLowerCase().startsWith("todo")) {
+                    String desc = input.substring(4).trim();
+                    if (desc.isEmpty()) {
+                        throw new EltryException("The description of a todo cannot be empty.");
                     }
-                } catch (Exception e) {
-                    System.out.println(" Usage: mark <task_number>");
-                }
-            } else if (input.toLowerCase().startsWith("unmark ")) {
-                try {
-                    int index = Integer.parseInt(input.split(" ")[1]) - 1;
-                    if (index >= 0 && index < taskCount) {
-                        tasks[index].markAsNotDone();
-                        System.out.println(" OK, I've marked this task as not done yet:\n   " + tasks[index]);
-                    } else {
-                        System.out.println(" Invalid task number!");
-                    }
-                } catch (Exception e) {
-                    System.out.println(" Usage: unmark <task_number>");
-                }
-            } else if (input.toLowerCase().startsWith("todo ")) {
-                String desc = input.substring(5).trim();
-                tasks[taskCount++] = new Todo(desc);
-                System.out.println(" Got it. I've added this task:\n   " + tasks[taskCount-1]);
-                System.out.println(" Now you have " + taskCount + " tasks in the list.");
-            } else if (input.toLowerCase().startsWith("deadline ")) {
-                try {
-                    String[] parts = input.substring(9).split("/by");
-                    String desc = parts[0].trim();
-                    String by = parts[1].trim();
-                    tasks[taskCount++] = new Deadline(desc, by);
+                    tasks[taskCount++] = new Todo(desc);
                     System.out.println(" Got it. I've added this task:\n   " + tasks[taskCount-1]);
                     System.out.println(" Now you have " + taskCount + " tasks in the list.");
-                } catch (Exception e) {
-                    System.out.println(" Usage: deadline <desc> /by <date>");
-                }
-            } else if (input.toLowerCase().startsWith("event ")) {
-                try {
-                    String[] parts = input.substring(6).split("/from");
-                    String desc = parts[0].trim();
+                } else if (input.toLowerCase().startsWith("deadline")) {
+                    String[] parts = input.substring(8).split("/by");
+                    if (parts.length < 2 || parts[0].trim().isEmpty() || parts[1].trim().isEmpty()) {
+                        throw new EltryException("Usage: deadline <desc> /by <date>");
+                    }
+                    tasks[taskCount++] = new Deadline(parts[0].trim(), parts[1].trim());
+                    System.out.println(" Got it. I've added this task:\n   " + tasks[taskCount-1]);
+                    System.out.println(" Now you have " + taskCount + " tasks in the list.");
+                } else if (input.toLowerCase().startsWith("event")) {
+                    String[] parts = input.substring(5).split("/from");
+                    if (parts.length < 2 || parts[0].trim().isEmpty()) {
+                        throw new EltryException("Usage: event <desc> /from <start> /to <end>");
+                    }
                     String[] times = parts[1].split("/to");
-                    String from = times[0].trim();
-                    String to = times[1].trim();
-                    tasks[taskCount++] = new Event(desc, from, to);
+                    if (times.length < 2 || times[0].trim().isEmpty() || times[1].trim().isEmpty()) {
+                        throw new EltryException("Usage: event <desc> /from <start> /to <end>");
+                    }
+                    tasks[taskCount++] = new Event(parts[0].trim(), times[0].trim(), times[1].trim());
                     System.out.println(" Got it. I've added this task:\n   " + tasks[taskCount-1]);
                     System.out.println(" Now you have " + taskCount + " tasks in the list.");
-                } catch (Exception e) {
-                    System.out.println(" Usage: event <desc> /from <start> /to <end>");
+                } else {
+                    throw new EltryException("I'm sorry, but I don't know what that means.");
                 }
-            } else {
-                tasks[taskCount++] = new Todo(input);
-                System.out.println(" Got it. I've added this task as a Todo:\n   " + tasks[taskCount-1]);
-                System.out.println(" Now you have " + taskCount + " tasks in the list.");
+            } catch (EltryException e) {
+                System.out.println(" " + e.getMessage());
             }
 
             System.out.println("____________________________________________________________");
         }
 
         scanner.close();
+    }
+
+    private static int parseIndex(String input, int taskCount) throws EltryException {
+        try {
+            int index = Integer.parseInt(input.split(" ")[1]) - 1;
+            if (index < 0 || index >= taskCount) {
+                throw new EltryException("Invalid task number.");
+            }
+            return index;
+        } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
+            throw new EltryException("Usage: mark/unmark <task_number>");
+        }
     }
 }
