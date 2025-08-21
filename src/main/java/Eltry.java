@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.Scanner;
 
 class EltryException extends Exception {
@@ -78,9 +79,7 @@ public class Eltry {
     public static void main(String[] args) {
         String chatbotName = "Eltry";
         Scanner scanner = new Scanner(System.in);
-
-        Task[] tasks = new Task[100];
-        int taskCount = 0;
+        ArrayList<Task> tasks = new ArrayList<>();
 
         String logo = """
   _____ _   _____ ______   __
@@ -93,7 +92,7 @@ public class Eltry {
         System.out.println("____________________________________________________________");
         System.out.println("Hello from\n" + logo);
         System.out.println(" Hello! I'm " + chatbotName + ", your friendly task bot.");
-        System.out.println(" Type tasks to add them, 'list' to view tasks, 'mark <num>' to mark done, 'unmark <num>' to undo, and 'bye' to exit!");
+        System.out.println(" Type tasks to add them, 'list' to view tasks, 'mark <num>' to mark done, 'unmark <num>' to undo, 'delete <num>' to remove, and 'bye' to exit!");
         System.out.println(" Task types: todo <desc>, deadline <desc> /by <date>, event <desc> /from <start> /to <end>");
         System.out.println("____________________________________________________________");
 
@@ -107,37 +106,42 @@ public class Eltry {
                     System.out.println("____________________________________________________________");
                     break;
                 } else if (input.equalsIgnoreCase("list")) {
-                    if (taskCount == 0) {
+                    if (tasks.isEmpty()) {
                         throw new EltryException("Your task list is empty.");
                     }
                     System.out.println(" Here are the tasks in your list:");
-                    for (int i = 0; i < taskCount; i++) {
-                        System.out.println(" " + (i + 1) + "." + tasks[i]);
+                    for (int i = 0; i < tasks.size(); i++) {
+                        System.out.println(" " + (i + 1) + "." + tasks.get(i));
                     }
                 } else if (input.toLowerCase().startsWith("mark ")) {
-                    int index = parseIndex(input, taskCount);
-                    tasks[index].markAsDone();
-                    System.out.println(" Nice! I've marked this task as done:\n   " + tasks[index]);
+                    int index = parseIndex(input, tasks.size());
+                    tasks.get(index).markAsDone();
+                    System.out.println(" Nice! I've marked this task as done:\n   " + tasks.get(index));
                 } else if (input.toLowerCase().startsWith("unmark ")) {
-                    int index = parseIndex(input, taskCount);
-                    tasks[index].markAsNotDone();
-                    System.out.println(" OK, I've marked this task as not done yet:\n   " + tasks[index]);
+                    int index = parseIndex(input, tasks.size());
+                    tasks.get(index).markAsNotDone();
+                    System.out.println(" OK, I've marked this task as not done yet:\n   " + tasks.get(index));
+                } else if (input.toLowerCase().startsWith("delete ")) {
+                    int index = parseIndex(input, tasks.size());
+                    Task removed = tasks.remove(index);
+                    System.out.println(" Noted. I've removed this task:\n   " + removed);
+                    System.out.println(" Now you have " + tasks.size() + " tasks in the list.");
                 } else if (input.toLowerCase().startsWith("todo")) {
                     String desc = input.substring(4).trim();
                     if (desc.isEmpty()) {
                         throw new EltryException("The description of a todo cannot be empty.");
                     }
-                    tasks[taskCount++] = new Todo(desc);
-                    System.out.println(" Got it. I've added this task:\n   " + tasks[taskCount-1]);
-                    System.out.println(" Now you have " + taskCount + " tasks in the list.");
+                    tasks.add(new Todo(desc));
+                    System.out.println(" Got it. I've added this task:\n   " + tasks.get(tasks.size() - 1));
+                    System.out.println(" Now you have " + tasks.size() + " tasks in the list.");
                 } else if (input.toLowerCase().startsWith("deadline")) {
                     String[] parts = input.substring(8).split("/by");
                     if (parts.length < 2 || parts[0].trim().isEmpty() || parts[1].trim().isEmpty()) {
                         throw new EltryException("Usage: deadline <desc> /by <date>");
                     }
-                    tasks[taskCount++] = new Deadline(parts[0].trim(), parts[1].trim());
-                    System.out.println(" Got it. I've added this task:\n   " + tasks[taskCount-1]);
-                    System.out.println(" Now you have " + taskCount + " tasks in the list.");
+                    tasks.add(new Deadline(parts[0].trim(), parts[1].trim()));
+                    System.out.println(" Got it. I've added this task:\n   " + tasks.get(tasks.size() - 1));
+                    System.out.println(" Now you have " + tasks.size() + " tasks in the list.");
                 } else if (input.toLowerCase().startsWith("event")) {
                     String[] parts = input.substring(5).split("/from");
                     if (parts.length < 2 || parts[0].trim().isEmpty()) {
@@ -147,9 +151,9 @@ public class Eltry {
                     if (times.length < 2 || times[0].trim().isEmpty() || times[1].trim().isEmpty()) {
                         throw new EltryException("Usage: event <desc> /from <start> /to <end>");
                     }
-                    tasks[taskCount++] = new Event(parts[0].trim(), times[0].trim(), times[1].trim());
-                    System.out.println(" Got it. I've added this task:\n   " + tasks[taskCount-1]);
-                    System.out.println(" Now you have " + taskCount + " tasks in the list.");
+                    tasks.add(new Event(parts[0].trim(), times[0].trim(), times[1].trim()));
+                    System.out.println(" Got it. I've added this task:\n   " + tasks.get(tasks.size() - 1));
+                    System.out.println(" Now you have " + tasks.size() + " tasks in the list.");
                 } else {
                     throw new EltryException("I'm sorry, but I don't know what that means.");
                 }
@@ -163,15 +167,15 @@ public class Eltry {
         scanner.close();
     }
 
-    private static int parseIndex(String input, int taskCount) throws EltryException {
+    private static int parseIndex(String input, int size) throws EltryException {
         try {
             int index = Integer.parseInt(input.split(" ")[1]) - 1;
-            if (index < 0 || index >= taskCount) {
+            if (index < 0 || index >= size) {
                 throw new EltryException("Invalid task number.");
             }
             return index;
         } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
-            throw new EltryException("Usage: mark/unmark <task_number>");
+            throw new EltryException("Usage: mark/unmark/delete <task_number>");
         }
     }
 }
