@@ -1,13 +1,72 @@
 import java.util.ArrayList;
 import java.util.Scanner;
+import java.io.*;
+import java.util.*;
+class Storage {
+    private final String filePath;
 
+    public Storage(String filePath) {
+        this.filePath = filePath;
+    }
+
+    public ArrayList<Task> load() {
+        ArrayList<Task> tasks = new ArrayList<>();
+        File file = new File(filePath);
+
+        file.getParentFile().mkdirs(); // ensure ./data exists
+
+        if (!file.exists()) return tasks; // first run, return empty
+
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] parts = line.split(" \\| ");
+                String type = parts[0];
+                boolean isDone = parts[1].equals("1");
+
+                Task task;
+                switch (type) {
+                    case "T":
+                        task = new Todo(parts[2]);
+                        break;
+                    case "D":
+                        task = new Deadline(parts[2], parts[3]);
+                        break;
+                    case "E":
+                        task = new Event(parts[2], parts[3], parts[4]);
+                        break;
+                    default:
+                        continue;
+                }
+
+                if (isDone) task.markAsDone();
+                tasks.add(task);
+            }
+        } catch (IOException e) {
+            System.out.println("Error loading file: " + e.getMessage());
+        }
+
+        return tasks;
+    }
+
+    public void save(List<Task> tasks) {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(filePath))) {
+            for (Task task : tasks) {
+                bw.write(task.toFileString());
+                bw.newLine();
+            }
+        } catch (IOException e) {
+            System.out.println("Error saving file: " + e.getMessage());
+        }
+    }
+}
 class EltryException extends Exception {
     public EltryException(String message) {
         super(message);
     }
 }
 
-class Task {
+abstract class Task {
     protected String description;
     protected boolean isDone;
 
@@ -32,6 +91,8 @@ class Task {
     public String toString() {
         return "[" + getStatusIcon() + "] " + description;
     }
+
+    public abstract String toFileString();
 }
 
 class Todo extends Task {
@@ -42,6 +103,11 @@ class Todo extends Task {
     @Override
     public String toString() {
         return "[T]" + super.toString();
+    }
+
+    @Override
+    public String toFileString() {
+        return "T | " + (isDone ? "1" : "0") + " | " + description;
     }
 }
 
@@ -56,6 +122,11 @@ class Deadline extends Task {
     @Override
     public String toString() {
         return "[D]" + super.toString() + " (by: " + by + ")";
+    }
+
+        @Override
+    public String toFileString() {
+        return "D | " + (isDone ? "1" : "0") + " | " + description + " | " + by;
     }
 }
 
@@ -73,13 +144,19 @@ class Event extends Task {
     public String toString() {
         return "[E]" + super.toString() + " (from: " + from + " to: " + to + ")";
     }
+
+    @Override
+    public String toFileString() {
+        return "E | " + (isDone ? "1" : "0") + " | " + description + " | " + from + " | " + to;
+    }
 }
 
 public class Eltry {
     public static void main(String[] args) {
         String chatbotName = "Eltry";
         Scanner scanner = new Scanner(System.in);
-        ArrayList<Task> tasks = new ArrayList<>();
+        Storage storage = new Storage("../../../data/list.txt");
+        ArrayList<Task> tasks = storage.load();  
 
         String logo = """
   _____ _   _____ ______   __
@@ -99,16 +176,14 @@ public class Eltry {
         while (true) {
             String input = scanner.nextLine().trim();
             System.out.println("____________________________________________________________");
-
+           
             try {
                 if (input.equalsIgnoreCase("bye")) {
                     System.out.println(" Bye. Hope to see you again soon! 😊");
                     System.out.println("____________________________________________________________");
                     break;
                 } else if (input.equalsIgnoreCase("list")) {
-                    if (tasks.isEmpty()) {
-                        throw new EltryException("Your task list is empty.");
-                    }
+                    if (tasks.isEmpty()) throw new EltryException("Your task list is empty.");
                     System.out.println(" Here are the tasks in your list:");
                     for (int i = 0; i < tasks.size(); i++) {
                         System.out.println(" " + (i + 1) + "." + tasks.get(i));
@@ -116,22 +191,24 @@ public class Eltry {
                 } else if (input.toLowerCase().startsWith("mark ")) {
                     int index = parseIndex(input, tasks.size());
                     tasks.get(index).markAsDone();
+                    storage.save(tasks); 
                     System.out.println(" Nice! I've marked this task as done:\n   " + tasks.get(index));
                 } else if (input.toLowerCase().startsWith("unmark ")) {
                     int index = parseIndex(input, tasks.size());
                     tasks.get(index).markAsNotDone();
+                    storage.save(tasks); 
                     System.out.println(" OK, I've marked this task as not done yet:\n   " + tasks.get(index));
                 } else if (input.toLowerCase().startsWith("delete ")) {
                     int index = parseIndex(input, tasks.size());
                     Task removed = tasks.remove(index);
+                    storage.save(tasks); 
                     System.out.println(" Noted. I've removed this task:\n   " + removed);
                     System.out.println(" Now you have " + tasks.size() + " tasks in the list.");
                 } else if (input.toLowerCase().startsWith("todo")) {
                     String desc = input.substring(4).trim();
-                    if (desc.isEmpty()) {
-                        throw new EltryException("The description of a todo cannot be empty.");
-                    }
+                    if (desc.isEmpty()) throw new EltryException("The description of a todo cannot be empty.");
                     tasks.add(new Todo(desc));
+                    storage.save(tasks); 
                     System.out.println(" Got it. I've added this task:\n   " + tasks.get(tasks.size() - 1));
                     System.out.println(" Now you have " + tasks.size() + " tasks in the list.");
                 } else if (input.toLowerCase().startsWith("deadline")) {
@@ -140,6 +217,7 @@ public class Eltry {
                         throw new EltryException("Usage: deadline <desc> /by <date>");
                     }
                     tasks.add(new Deadline(parts[0].trim(), parts[1].trim()));
+                    storage.save(tasks); 
                     System.out.println(" Got it. I've added this task:\n   " + tasks.get(tasks.size() - 1));
                     System.out.println(" Now you have " + tasks.size() + " tasks in the list.");
                 } else if (input.toLowerCase().startsWith("event")) {
@@ -152,6 +230,7 @@ public class Eltry {
                         throw new EltryException("Usage: event <desc> /from <start> /to <end>");
                     }
                     tasks.add(new Event(parts[0].trim(), times[0].trim(), times[1].trim()));
+                    storage.save(tasks); 
                     System.out.println(" Got it. I've added this task:\n   " + tasks.get(tasks.size() - 1));
                     System.out.println(" Now you have " + tasks.size() + " tasks in the list.");
                 } else {
