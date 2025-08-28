@@ -1,280 +1,87 @@
 import java.util.ArrayList;
-import java.util.Scanner;
-import java.io.*;
-import java.util.*;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 
-class Storage {
-    private final String filePath;
-
-    public Storage(String filePath) {
-        this.filePath = filePath;
-    }
-
-    public ArrayList<Task> load() throws EltryException {
-        ArrayList<Task> tasks = new ArrayList<>();
-        File file = new File(filePath);
-
-        file.getParentFile().mkdirs();
-
-        if (!file.exists()) return tasks;
-
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] parts = line.split(" \\| ");
-                String type = parts[0];
-                boolean isDone = parts[1].equals("1");
-
-                Task task;
-                switch (type) {
-                    case "T":
-                        task = new Todo(parts[2]);
-                        break;
-                    case "D":
-                        task = new Deadline(parts[2], parts[3]);
-                        break;
-                    case "E":
-                        task = new Event(parts[2], parts[3], parts[4]);
-                        break;
-                    default:
-                        continue;
-                }
-
-                if (isDone) task.markAsDone();
-                tasks.add(task);
-            }
-        } catch (IOException e) {
-            System.out.println("Error loading file: " + e.getMessage());
-        }
-
-        return tasks;
-    }
-
-    public void save(List<Task> tasks) {
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(filePath))) {
-            for (Task task : tasks) {
-                bw.write(task.toFileString());
-                bw.newLine();
-            }
-        } catch (IOException e) {
-            System.out.println("Error saving file: " + e.getMessage());
-        }
-    }
-}
-
-class EltryException extends Exception {
-    public EltryException(String message) {
-        super(message);
-    }
-}
-
-abstract class Task {
-    protected String description;
-    protected boolean isDone;
-
-    public Task(String description) {
-        this.description = description;
-        this.isDone = false;
-    }
-
-    public void markAsDone() {
-        isDone = true;
-    }
-
-    public void markAsNotDone() {
-        isDone = false;
-    }
-
-    public String getStatusIcon() {
-        return (isDone ? "X" : " ");
-    }
-
-    @Override
-    public String toString() {
-        return "[" + getStatusIcon() + "] " + description;
-    }
-
-    public abstract String toFileString();
-}
-
-class Todo extends Task {
-    public Todo(String description) {
-        super(description);
-    }
-
-    @Override
-    public String toString() {
-        return "[T]" + super.toString();
-    }
-
-    @Override
-    public String toFileString() {
-        return "T | " + (isDone ? "1" : "0") + " | " + description;
-    }
-}
-
-
-class Deadline extends Task {
-    protected LocalDateTime by;
-    private static final DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("d/M/yyyy HHmm");
-    private static final DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("MMM dd yyyy, h:mma");
-
-    public Deadline(String description, String byStr) throws EltryException {
-        super(description);
-        try {
-            this.by = LocalDateTime.parse(byStr, inputFormatter);
-        } catch (DateTimeParseException e) {
-            throw new EltryException("Invalid date format. Use d/M/yyyy HHmm (e.g., 2/12/2019 1800).");
-        }
-    }
-
-    @Override
-    public String toString() {
-        return "[D]" + super.toString() + " (by: " + by.format(outputFormatter).toLowerCase() + ")";
-    }
-
-    @Override
-    public String toFileString() {
-        return "D | " + (isDone ? "1" : "0") + " | " + description + " | " + by.format(inputFormatter);
-    }
-}
-
-class Event extends Task {
-    protected String from;
-    protected String to;
-
-    public Event(String description, String from, String to) {
-        super(description);
-        this.from = from;
-        this.to = to;
-    }
-
-    @Override
-    public String toString() {
-        return "[E]" + super.toString() + " (from: " + from + " to: " + to + ")";
-    }
-
-    @Override
-    public String toFileString() {
-        return "E | " + (isDone ? "1" : "0") + " | " + description + " | " + from + " | " + to;
-    }
-}
-
+// Eltry.java
 public class Eltry {
-    public static void main(String[] args) throws EltryException {
-        String chatbotName = "Eltry";
-        Scanner scanner = new Scanner(System.in);
+    private static final String LOGO = 
+        "  _____ _   _____ ______   __\n" +
+        " | ____| | |_   _|  _ \\ \\ / /\n" +
+        " |  _| | |   | | | |_) \\ V / \n" +
+        " | |___| |___| | |  _ < | |  \n" +
+        " |_____|_____|_| |_| \\_\\|_|  ";
+
+    public static void main(String[] args) {
+        Ui ui = new Ui();
         Storage storage = new Storage("../../../data/list.txt");
-        ArrayList<Task> tasks = storage.load();
+        Parser parser = new Parser();
 
-        String logo = """
-  _____ _   _____ ______   __
- | ____| | |_   _|  _ \\ \\ / /
- |  _| | |   | | | |_) \\ V / 
- | |___| |___| | |  _ < | |  
- |_____|_____|_| |_| \\_\\|_|            
-""";
+        ArrayList<Task> loadedTasks;
+        try {
+            loadedTasks = storage.load();
+        } catch (EltryException e) {
+            ui.showError(e.getMessage());
+            loadedTasks = new ArrayList<>();
+        }
 
-        System.out.println("____________________________________________________________");
-        System.out.println("Hello from\n" + logo);
-        System.out.println(" Hello! I'm " + chatbotName + ", your friendly task bot.");
-        System.out.println(" Type tasks to add them, 'list' to view tasks, 'mark <num>' to mark done, 'unmark <num>' to undo, 'delete <num>' to remove, and 'bye' to exit!");
-        System.out.println(" Task types: todo <desc>, deadline <desc> /by <yyyy-MM-dd HHmm>, event <desc> /from <start> /to <end>");
-        System.out.println("____________________________________________________________");
+        TaskList taskList = new TaskList(loadedTasks);
+
+        ui.showWelcome(LOGO, "Eltry");
 
         while (true) {
-            String input = scanner.nextLine().trim();
-            System.out.println("____________________________________________________________");
-
             try {
-                if (input.equalsIgnoreCase("bye")) {
-                    System.out.println(" Bye. Hope to see you again soon! 😊");
-                    System.out.println("____________________________________________________________");
-                    break;
-                } else if (input.equalsIgnoreCase("list")) {
-                    if (tasks.isEmpty()) throw new EltryException("Your task list is empty.");
-                    System.out.println(" Here are the tasks in your list:");
-                    for (int i = 0; i < tasks.size(); i++) {
-                        System.out.println(" " + (i + 1) + "." + tasks.get(i));
-                    }
-                } else if (input.toLowerCase().startsWith("mark ")) {
-                    int index = parseIndex(input, tasks.size());
-                    tasks.get(index).markAsDone();
-                    storage.save(tasks);
-                    System.out.println(" Nice! I've marked this task as done:\n   " + tasks.get(index));
-                } else if (input.toLowerCase().startsWith("unmark ")) {
-                    int index = parseIndex(input, tasks.size());
-                    tasks.get(index).markAsNotDone();
-                    storage.save(tasks);
-                    System.out.println(" OK, I've marked this task as not done yet:\n   " + tasks.get(index));
-                } else if (input.toLowerCase().startsWith("delete ")) {
-                    int index = parseIndex(input, tasks.size());
-                    Task removed = tasks.remove(index);
-                    storage.save(tasks);
-                    System.out.println(" Noted. I've removed this task:\n   " + removed);
-                    System.out.println(" Now you have " + tasks.size() + " tasks in the list.");
-                } else if (input.toLowerCase().startsWith("todo")) {
-                    String desc = input.substring(4).trim();
-                    if (desc.isEmpty()) throw new EltryException("The description of a todo cannot be empty.");
-                    tasks.add(new Todo(desc));
-                    storage.save(tasks);
-                    System.out.println(" Got it. I've added this task:\n   " + tasks.get(tasks.size() - 1));
-                    System.out.println(" Now you have " + tasks.size() + " tasks in the list.");
-                } else if (input.toLowerCase().startsWith("deadline")) {
-                    String[] parts = input.substring(8).split("/by");
-                    if (parts.length < 2 || parts[0].trim().isEmpty() || parts[1].trim().isEmpty()) {
-                        throw new EltryException("Usage: deadline <desc> /by <yyyy-MM-dd HHmm>");
-                    }
+                String input = ui.readCommand();
+                Command cmd = parser.parse(input);
 
-                    String desc = parts[0].trim();
-                    String byStr = parts[1].trim();
-
-                    try {
-                        tasks.add(new Deadline(desc, byStr));
-                        storage.save(tasks);
-                        System.out.println(" Got it. I've added this task:\n   " + tasks.get(tasks.size() - 1));
-                        System.out.println(" Now you have " + tasks.size() + " tasks in the list.");
-                    } catch (EltryException e) {
-                        System.out.println(" " + e.getMessage());
-                    }
-                } else if (input.toLowerCase().startsWith("event")) {
-                    String[] parts = input.substring(5).split("/from");
-                    if (parts.length < 2 || parts[0].trim().isEmpty()) {
-                        throw new EltryException("Usage: event <desc> /from <start> /to <end>");
-                    }
-                    String[] times = parts[1].split("/to");
-                    if (times.length < 2 || times[0].trim().isEmpty() || times[1].trim().isEmpty()) {
-                        throw new EltryException("Usage: event <desc> /from <start> /to <end>");
-                    }
-                    tasks.add(new Event(parts[0].trim(), times[0].trim(), times[1].trim()));
-                    storage.save(tasks);
-                    System.out.println(" Got it. I've added this task:\n   " + tasks.get(tasks.size() - 1));
-                    System.out.println(" Now you have " + tasks.size() + " tasks in the list.");
-                } else {
-                    throw new EltryException("I'm sorry, but I don't know what that means.");
+                switch (cmd.action) {
+                    case "bye":
+                        ui.showGoodbye();
+                        ui.close();
+                        return;
+                    case "list":
+                        ui.showTaskList(taskList.getAll());
+                        break;
+                    case "mark":
+                        taskList.mark(cmd.index);
+                        storage.save(taskList.getAll());
+                        ui.showTaskMarked(taskList.get(cmd.index));
+                        break;
+                    case "unmark":
+                        taskList.unmark(cmd.index);
+                        storage.save(taskList.getAll());
+                        ui.showTaskUnmarked(taskList.get(cmd.index));
+                        break;
+                    case "delete":
+                        Task removed = taskList.remove(cmd.index);
+                        storage.save(taskList.getAll());
+                        ui.showTaskDeleted(removed, taskList.size());
+                        break;
+                    case "todo":
+                        Todo todo = new Todo(cmd.arg1);
+                        taskList.add(todo);
+                        storage.save(taskList.getAll());
+                        ui.showTaskAdded(todo, taskList.size());
+                        break;
+                    case "deadline":
+                        try {
+                            Deadline deadline = new Deadline(cmd.arg1, cmd.arg2);
+                            taskList.add(deadline);
+                            storage.save(taskList.getAll());
+                            ui.showTaskAdded(deadline, taskList.size());
+                        } catch (EltryException e) {
+                            ui.showError(e.getMessage());
+                        }
+                        break;
+                    case "event":
+                        Event event = new Event(cmd.arg1, cmd.arg2, cmd.arg3);
+                        taskList.add(event);
+                        storage.save(taskList.getAll());
+                        ui.showTaskAdded(event, taskList.size());
+                        break;
+                    default:
+                        ui.showError("Unknown command: " + cmd.action);
                 }
             } catch (EltryException e) {
-                System.out.println(" " + e.getMessage());
+                ui.showError(e.getMessage());
             }
-
-            System.out.println("____________________________________________________________");
-        }
-
-        scanner.close();
-    }
-
-    private static int parseIndex(String input, int size) throws EltryException {
-        try {
-            int index = Integer.parseInt(input.split(" ")[1]) - 1;
-            if (index < 0 || index >= size) {
-                throw new EltryException("Invalid task number.");
-            }
-            return index;
-        } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
-            throw new EltryException("Usage: mark/unmark/delete <task_number>");
         }
     }
 }
