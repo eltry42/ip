@@ -1,3 +1,4 @@
+package eltry;
 // Ui.java
 import java.util.ArrayList;
 import java.util.Scanner;

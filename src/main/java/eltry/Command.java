@@ -1,3 +1,4 @@
+package eltry;
 // Command.java
 public class Command {
     public final String action;
