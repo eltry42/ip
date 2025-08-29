@@ -57,6 +57,10 @@ public class Parsers {
                 throw new EltryException("Description, start, and end cannot be empty.");
             }
             return new Command("event", desc, fromStr, toStr);
+        } else if (input.toLowerCase().startsWith("find ")) {
+            String keyword = input.substring(5).trim();
+            if (keyword.isEmpty()) throw new EltryException("Keyword cannot be empty.");
+            return new Command("find", keyword);
         } else {
             throw new EltryException("I'm sorry, but I don't know what that means.");
         }

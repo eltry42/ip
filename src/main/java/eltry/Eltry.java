@@ -11,7 +11,7 @@ public class Eltry {
     /**
      * ASCII logo displayed on program startup.
      */
-    private static final String LOGO = 
+    private static final String LOGO =
         "  _____ _   _____ ______   __\n" +
         " | ____| | |_   _|  _ \\ \\ / /\n" +
         " |  _| | |   | | | |_) \\ V / \n" +
@@ -89,6 +89,19 @@ public class Eltry {
                         taskList.add(event);
                         storage.save(taskList.getAll());
                         ui.showTaskAdded(event, taskList.size());
+                        break;
+                    case "find":
+                        ArrayList<Task> matches = new ArrayList<>();
+                        for (Task task : taskList.getAll()) {
+                            if (task.toString().toLowerCase().contains(cmd.arg1.toLowerCase())) {
+                                matches.add(task);
+                            }
+                        }
+                        if (matches.isEmpty()) {
+                            ui.showError("No tasks found matching: " + cmd.arg1);
+                        } else {
+                            ui.showTaskList(matches);
+                        }
                         break;
                     default:
                         ui.showError("Unknown command: " + cmd.action);
