@@ -1,6 +1,6 @@
 package eltry;
 
-// Parser.java
+// Parsers.java
 public class Parsers {
 
     public Command parse(String input) throws EltryException {
