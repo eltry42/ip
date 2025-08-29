@@ -1,7 +1,7 @@
 package eltry;
 
 // Parser.java
-public class Parser {
+public class Parsers {
 
     public Command parse(String input) throws EltryException {
         if (input.equalsIgnoreCase("bye")) {

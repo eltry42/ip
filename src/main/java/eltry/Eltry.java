@@ -13,7 +13,7 @@ public class Eltry {
     public static void main(String[] args) {
         Ui ui = new Ui();
         Storage storage = new Storage("../../../data/list.txt");
-        Parser parser = new Parser();
+        Parsers parser = new Parsers();
 
         ArrayList<Task> loadedTasks;
         try {
