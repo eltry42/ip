@@ -1,8 +1,16 @@
 package eltry;
+
 import java.util.ArrayList;
 
-// Eltry.java
+/**
+ * The main class for the Eltry task manager application.
+ * Handles program startup, command parsing, and task management loop.
+ */
 public class Eltry {
+
+    /**
+     * ASCII logo displayed on program startup.
+     */
     private static final String LOGO = 
         "  _____ _   _____ ______   __\n" +
         " | ____| | |_   _|  _ \\ \\ / /\n" +
@@ -10,6 +18,12 @@ public class Eltry {
         " | |___| |___| | |  _ < | |  \n" +
         " |_____|_____|_| |_| \\_\\|_|  ";
 
+    /**
+     * Main entry point of the Eltry application.
+     * Initializes UI, storage, parser, loads tasks, and enters the command loop.
+     *
+     * @param args command-line arguments (not used)
+     */
     public static void main(String[] args) {
         Ui ui = new Ui();
         Storage storage = new Storage("../../../data/list.txt");
@@ -24,7 +38,6 @@ public class Eltry {
         }
 
         TaskList taskList = new TaskList(loadedTasks);
-
         ui.showWelcome(LOGO, "Eltry");
 
         while (true) {

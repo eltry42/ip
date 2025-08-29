@@ -1,8 +1,18 @@
 package eltry;
 
-// Parsers.java
+/**
+ * Handles parsing of user input strings into {@link Command} objects.
+ * Validates input format and throws {@link EltryException} for invalid commands.
+ */
 public class Parsers {
 
+    /**
+     * Parses a user input string into a {@link Command}.
+     *
+     * @param input the raw user input string
+     * @return the parsed Command object
+     * @throws EltryException if the input is invalid or the format is incorrect
+     */
     public Command parse(String input) throws EltryException {
         if (input.equalsIgnoreCase("bye")) {
             return new Command("bye");
@@ -52,6 +62,13 @@ public class Parsers {
         }
     }
 
+    /**
+     * Parses the index number from a mark/unmark/delete command.
+     *
+     * @param input the raw command input
+     * @return zero-based index of the task
+     * @throws EltryException if the index is missing, not a number, or invalid
+     */
     private int parseIndex(String input) throws EltryException {
         try {
             String[] parts = input.split(" ", 2);
