@@ -1,128 +1,131 @@
 package eltry;
 
+import java.io.InputStream;
+import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Scanner;
 
 /**
- * Handles all user interactions in the terminal.
- * Provides methods to display messages, show task updates, and read user input.
+ * Ui class handles all user interactions.
+ * It returns formatted strings for display (suitable for both CLI and GUI).
  */
 public class Ui {
 
-    /** Scanner object to read input from the user. */
-    private final Scanner scanner;
+    private static final String INTRO = "Hello! I'm eltry!\n" +
+            "How can I help you?";
+    private static final String BYE = "Bye! See you again!\n";
+
+    private final PrintStream out;
 
     /**
-     * Constructs a new Ui instance with a Scanner for reading user input.
+     * Constructs a Ui with default System.in and System.out.
      */
     public Ui() {
-        this.scanner = new Scanner(System.in);
+        this(System.in, System.out);
     }
 
     /**
-     * Displays a welcome message including the logo and program name.
+     * Constructs a Ui with custom input and output streams.
      *
-     * @param logo ASCII art logo
-     * @param name name of the bot
+     * @param in  input stream
+     * @param out output stream
      */
-    public void showWelcome(String logo, String name) {
-        String line = "____________________________________________________________";
-        System.out.println(line);
-        System.out.println("Hello from\n" + logo);
-        System.out.println(" Hello! I'm " + name + ", your friendly task bot.");
-        System.out.println(" Type tasks to add them, 'list' to view tasks, 'mark <num>' to mark done,");
-        System.out.println(" 'unmark <num>' to undo, 'delete <num>' to remove, and 'bye' to exit!");
-        System.out.println(" Task types: todo <desc>, deadline <desc> /by <yyyy-MM-dd HHmm>,");
-        System.out.println("           event <desc> /from <start> /to <end>");
-        System.out.println(line);
-    }
-
-    /** Displays a goodbye message when the program exits. */
-    public void showGoodbye() {
-        System.out.println(" Bye. Hope to see you again soon! 😊");
-        System.out.println("____________________________________________________________");
+    public Ui(InputStream in, PrintStream out) {
+        this.out = out;
     }
 
     /**
-     * Displays an error message to the user.
+     * Returns the introduction message.
      *
-     * @param message the error message to show
+     * @return welcome message as string
      */
-    public void showError(String message) {
-        System.out.println(" " + message);
-        System.out.println("____________________________________________________________");
+    public String getIntro() {
+        return INTRO;
     }
 
     /**
-     * Shows a message that a task has been added.
+     * Returns the goodbye message.
      *
-     * @param task the task that was added
-     * @param size the total number of tasks after addition
+     * @return farewell message as string
      */
-    public void showTaskAdded(Task task, int size) {
-        System.out.println(" Got it. I've added this task:\n   " + task);
-        System.out.println(" Now you have " + size + " tasks in the list.");
-        System.out.println("____________________________________________________________");
+    public String getBye() {
+        return BYE;
     }
 
     /**
-     * Shows a message that a task has been deleted.
+     * Returns a message confirming a task was deleted.
      *
-     * @param task the task that was removed
-     * @param size the total number of tasks after removal
+     * @param task   the task that was removed
+     * @param tasks  the current task list
+     * @return       formatted message
      */
-    public void showTaskDeleted(Task task, int size) {
-        System.out.println(" Noted. I've removed this task:\n   " + task);
-        System.out.println(" Now you have " + size + " tasks in the list.");
-        System.out.println("____________________________________________________________");
+    public String getDeleteTaskMessage(Task task, ArrayList<Task> tasks) {
+        return String.format("I have removed this task.\n%s\n" +
+                "Now you have %d tasks in the list.", task, tasks.size());
     }
 
     /**
-     * Shows that a task has been marked as done.
+     * Returns an error message.
+     *
+     * @param e the exception containing the error
+     * @return  the error message
+     */
+    public String getErrorMessage(EltryException e) {
+        return e.getMessage();
+    }
+
+    /**
+     * Returns a message confirming a task was marked as done.
      *
      * @param task the task that was marked
+     * @return     formatted message
      */
-    public void showTaskMarked(Task task) {
-        System.out.println(" Nice! I've marked this task as done:\n   " + task);
-        System.out.println("____________________________________________________________");
+    public String getMarkTaskMessage(Task task) {
+        return String.format("Nice! I've marked this task as complete!\n%s", task);
     }
 
     /**
-     * Shows that a task has been unmarked (not done).
+     * Returns a message confirming a task was added.
      *
-     * @param task the task that was unmarked
+     * @param task   the task that was added
+     * @param tasks  the current task list
+     * @return       formatted message
      */
-    public void showTaskUnmarked(Task task) {
-        System.out.println(" OK, I've marked this task as not done yet:\n   " + task);
-        System.out.println("____________________________________________________________");
+    public String getAddTaskMessage(Task task, ArrayList<Task> tasks) {
+        return String.format("I have added task: %s\n" +
+                "Now you have %d tasks in the list.", task, tasks.size());
     }
 
     /**
-     * Displays the full list of tasks.
+     * Returns a formatted list of all tasks.
      *
-     * @param tasks the list of tasks to display
-     * @throws EltryException if the task list is empty
+     * @param tasks the task list to display
+     * @return      formatted string of tasks, or empty message
      */
-    public void showTaskList(ArrayList<Task> tasks) throws EltryException {
-        if (tasks.isEmpty()) throw new EltryException("Your task list is empty.");
-        System.out.println(" Here are the tasks in your list:");
-        for (int i = 0; i < tasks.size(); i++) {
-            System.out.println(" " + (i + 1) + "." + tasks.get(i));
+    public String getListTasksMessage(ArrayList<Task> tasks) {
+        if (tasks.isEmpty()) {
+            return "There are no tasks in the list";
         }
-        System.out.println("____________________________________________________________");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < tasks.size(); i++) {
+            sb.append(String.format("%d. %s\n", i + 1, tasks.get(i)));
+        }
+        return sb.toString().trim();
     }
 
     /**
-     * Reads a command from the user.
-     *
-     * @return the trimmed input string entered by the user
+     * Prompts the user to add a task.
+     * (Can be overridden in GUI version)
      */
-    public String readCommand() {
-        return scanner.nextLine().trim();
+    public void promptAddTask() {
+        out.println("Add Task: ");
     }
 
-    /** Closes the scanner to release resources. */
-    public void close() {
-        scanner.close();
+    /**
+     * Prints a task to the console.
+     *
+     * @param task the task to print
+     */
+    public void printTask(Task task) {
+        out.println(task);
     }
 }
