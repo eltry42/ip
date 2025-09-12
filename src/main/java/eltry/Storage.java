@@ -53,7 +53,7 @@ public class Storage {
                         try {
                             task = new Deadline(parts[2], parts[3]);
                         } catch (EltryException e) {
-                            continue; // skip invalid deadline
+                            continue;
                         }
                         break;
                     case "E":
@@ -80,9 +80,9 @@ public class Storage {
      * @param tasks the list of tasks to save
      * @throws EltryException if there is an error writing to the file
      */
-    public void save(ArrayList<Task> tasks) throws EltryException {
+    public void save(TaskList tasks) throws EltryException {
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(filePath))) {
-            for (Task task : tasks) {
+            for (Task task : tasks.getAll()) {
                 bw.write(task.toFileString());
                 bw.newLine();
             }

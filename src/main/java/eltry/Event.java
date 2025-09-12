@@ -60,7 +60,11 @@ public class Event extends Task {
      */
     @Override
     public String toFileString() {
-        return "E | " + (isDone ? "1" : "0") + " | " + description + " | " 
+        return "E | " + (isDone ? "1" : "0") + " | " + description + " | "
                 + from.format(formatter) + " | " + to.format(formatter);
     }
+
+
+    public LocalDateTime getFrom() { return from; }
+    public LocalDateTime getTo() { return to; }
 }

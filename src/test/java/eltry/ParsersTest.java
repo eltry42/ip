@@ -63,7 +63,7 @@ class ParsersTest {
         Command cmd = parser.parse("mark 1");
 
         assertEquals("mark", cmd.action);
-        assertEquals(0, cmd.index); 
+        assertEquals(0, cmd.index);
     }
 
     /**

@@ -4,17 +4,17 @@ import java.util.ArrayList;
 
 /**
  * Represents a list of tasks and provides methods to manipulate them.
- * Supports adding, removing, marking/unmarking tasks, and retrieving task information.
+ * Handles adding, deleting, marking/unmarking, finding, and conflict checking.
  */
 public class TaskList {
 
-    /** Internal list that stores the tasks. */
+    /** Internal list storing all tasks. */
     private final ArrayList<Task> tasks;
 
     /**
-     * Constructs a TaskList with an initial list of tasks.
+     * Constructs a TaskList with an initial set of tasks.
      *
-     * @param tasks the initial list of tasks
+     * @param tasks initial tasks
      */
     public TaskList(ArrayList<Task> tasks) {
         this.tasks = tasks;
@@ -22,73 +22,116 @@ public class TaskList {
 
     /**
      * Adds a task to the list.
+     * Throws EltryException if there is a schedule conflict.
      *
-     * @param task the task to add
+     * @param task task to add
+     * @throws EltryException if a scheduling conflict is detected
      */
-    public void add(Task task) {
+    public void add(Task task) throws EltryException {
+        if (hasConflict(task)) {
+            throw new EltryException("Schedule conflict detected! Task not added.");
+        }
         tasks.add(task);
     }
 
     /**
-     * Returns the task at the specified index.
+     * Retrieves a task by its index.
      *
-     * @param index zero-based index of the task
-     * @return the task at the given index
-     * @throws EltryException if the index is invalid
+     * @param index position of the task
+     * @return the task at the specified index
+     * @throws EltryException if index is invalid
      */
     public Task get(int index) throws EltryException {
-        if (index < 0 || index >= tasks.size()) {
-            throw new EltryException("Invalid task number.");
-        }
+        if (index < 0 || index >= tasks.size()) throw new EltryException("Invalid task number.");
         return tasks.get(index);
     }
 
     /**
-     * Removes and returns the task at the specified index.
+     * Deletes a task at the specified index.
      *
-     * @param index zero-based index of the task to remove
-     * @return the removed task
-     * @throws EltryException if the index is invalid
+     * @param index index of the task to remove
+     * @return the deleted task
+     * @throws EltryException if index is invalid
      */
-    public Task remove(int index) throws EltryException {
-        Task task = get(index);
+    public Task delete(int index) throws EltryException {
+        Task t = get(index);
         tasks.remove(index);
-        return task;
+        return t;
     }
 
     /**
-     * Marks the task at the specified index as done.
+     * Marks a task as done.
      *
-     * @param index zero-based index of the task to mark
-     * @throws EltryException if the index is invalid
+     * @param index index of the task
+     * @return the marked task
+     * @throws EltryException if index is invalid
      */
-    public void mark(int index) throws EltryException {
-        get(index).markAsDone();
+    public Task mark(int index) throws EltryException {
+        Task t = get(index);
+        t.markAsDone();
+        return t;
     }
 
     /**
-     * Marks the task at the specified index as not done.
+     * Marks a task as not done.
      *
-     * @param index zero-based index of the task to unmark
-     * @throws EltryException if the index is invalid
+     * @param index index of the task
+     * @return the unmarked task
+     * @throws EltryException if index is invalid
      */
-    public void unmark(int index) throws EltryException {
-        get(index).markAsNotDone();
+    public Task unmark(int index) throws EltryException {
+        Task t = get(index);
+        t.markAsNotDone();
+        return t;
+    }
+
+    /**
+     * Finds tasks containing a keyword in their description.
+     *
+     * @param keyword keyword to search for
+     * @return list of matching tasks
+     */
+    public ArrayList<Task> find(String keyword) {
+        ArrayList<Task> found = new ArrayList<>();
+        for (Task t : tasks) {
+            if (t.description.toLowerCase().contains(keyword.toLowerCase())) found.add(t);
+        }
+        return found;
+    }
+
+    /**
+     * Checks if adding a new task would conflict with existing events.
+     *
+     * @param newTask the task to check
+     * @return true if a conflict exists, false otherwise
+     */
+    private boolean hasConflict(Task newTask) {
+        if (!(newTask instanceof Event)) return false;
+
+        Event newEvent = (Event) newTask;
+        for (Task task : tasks) {
+            if (task instanceof Event) {
+                Event e = (Event) task;
+                boolean overlap = !newEvent.getTo().isBefore(e.getFrom()) && !newEvent.getFrom().isAfter(e.getTo());
+                if (overlap) return true;
+            }
+        }
+        return false;
     }
 
     /**
      * Returns the number of tasks in the list.
      *
-     * @return the size of the task list
+     * @return task count
      */
     public int size() {
         return tasks.size();
     }
 
     /**
-     * Returns the internal list of tasks.
+     * Returns all tasks in the list.
      *
-     * @return the ArrayList containing all tasks
+     * @return list of all tasks
      */
     public ArrayList<Task> getAll() {
         return tasks;
