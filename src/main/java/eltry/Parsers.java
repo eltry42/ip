@@ -77,7 +77,7 @@ public class Parsers {
             return new Command("event", desc, from, to);
         }
 
-        if (lower.startsWith("find ")) {
+        if (lower.startsWith("find")) {
             String keyword = input.substring(5).trim();
             if (keyword.isEmpty()) throw new EltryException("Keyword cannot be empty.");
             return new Command("find", keyword);
